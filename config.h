@@ -5,13 +5,10 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
-/* Spare fonts */
-static char *font2[] = {
-/*	"Inconsolata for Powerline:pixelsize=12:antialias=true:autohint=true", */
-/*	"Hack Nerd Font Mono:pixelsize=11:antialias=true:autohint=true", */
-};
-
+//static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
+static char *font = "Source Code Pro:style=Medium:size=13:antialias=true";
+//static char *font = "mono:pixelsize=14:antialias=true:autohint=true";
+static char *font2[] = { "JoyPixels:size=13:antialias=true:autohint=true" };
 static int borderpx = 2;
 
 /*
@@ -86,35 +83,37 @@ char *termname = "st-256color";
  *
  *	stty tabs
  */
-unsigned int tabspaces = 8;
+unsigned int tabspaces = 2;
 
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	/* 8 normal colors */
-	"black",
-	"red3",
-	"green3",
-	"yellow3",
-	"blue2",
-	"magenta3",
-	"cyan3",
-	"gray90",
+	"#383c4a",//color0
+	"#9A4138",//color1
+	"#4BEC90",
+	"#D8D782",
+	"#5294e2",
+	"#CE50DD",
+	"#6BE5E7",
+	"#CCCCCC",
 
 	/* 8 bright colors */
-	"gray50",
-	"red",
-	"green",
-	"yellow",
-	"#5c5cff",
-	"magenta",
-	"cyan",
-	"white",
+	"#404552",
+	"#E7766B",
+	"#3CBF75",
+	"#CFCD63",
+	"#268bd2",
+	"#FE50DD",
+	"#90FDFF",
+	"#FFFFFF",
 
 	[255] = 0,
 
 	/* more colors can be added after 255 to use with DefaultXX */
-	"#cccccc",
-	"#555555",
+	"#FFFFFF", /* 256 -> cursor */
+	"#FFFFFF", /* 257 -> rev cursor*/
+	"#1E1E1E", /* 258 -> bg */
+	"#D2D2D2", /* 259 -> fg */
 };
 
 
@@ -122,8 +121,8 @@ static const char *colorname[] = {
  * Default colors (colorname index)
  * foreground, background, cursor, reverse cursor
  */
-unsigned int defaultfg = 7;
-unsigned int defaultbg = 0;
+unsigned int defaultfg = 259;
+unsigned int defaultbg = 258;
 static unsigned int defaultcs = 256;
 static unsigned int defaultrcs = 257;
 
