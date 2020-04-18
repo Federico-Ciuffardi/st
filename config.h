@@ -201,7 +201,10 @@ static Shortcut shortcuts[] = {
 	{ TERMMOD,              XK_J,           kscrolldown,    {.i =  1} },
 	{ ShiftMask|ControlMask,XK_Up,          kscrollup,      {.i =  1} },
 	{ ShiftMask|ControlMask,XK_Down,        kscrolldown,    {.i =  1} },   
+<<<<<<< HEAD
 	{ TERMMOD,              XK_Return,      newterm,        {.i =  0} },
+=======
+>>>>>>> e195fb6... adds keyboard scrollback
 };
 
 /*

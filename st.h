@@ -83,7 +83,10 @@ void draw(void);
 
 void kscrolldown(const Arg *);
 void kscrollup(const Arg *);
+<<<<<<< HEAD
 void newterm(const Arg *);
+=======
+>>>>>>> e195fb6... adds keyboard scrollback
 void printscreen(const Arg *);
 void printsel(const Arg *);
 void sendbreak(const Arg *);
