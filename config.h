@@ -116,6 +116,8 @@ static const char *colorname[] = {
 	"#D2D2D2", /* 259 -> fg */
 };
 
+/* bg opacity */
+float alpha = 0.94;
 
 /*
  * Default colors (colorname index)
@@ -268,7 +270,7 @@ static Key key[] = {
 	{ XK_KP_Delete,     ControlMask,    "\033[3;5~",    +1,    0},
 	{ XK_KP_Delete,     ShiftMask,      "\033[2K",      -1,    0},
 	{ XK_KP_Delete,     ShiftMask,      "\033[3;2~",    +1,    0},
-	{ XK_KP_Delete,     XK_ANY_MOD,     "\033[P",       -1,    0},
+	{ XK_KP_Delete,     XK_ANY_MOD,     "\033[3~",      -1,    0},
 	{ XK_KP_Delete,     XK_ANY_MOD,     "\033[3~",      +1,    0},
 	{ XK_KP_Multiply,   XK_ANY_MOD,     "\033Oj",       +2,    0},
 	{ XK_KP_Add,        XK_ANY_MOD,     "\033Ok",       +2,    0},
@@ -308,7 +310,7 @@ static Key key[] = {
 	{ XK_Left,          ShiftMask,      "\033[1;2D",     0,    0},
 	{ XK_Left,          Mod1Mask,       "\033[1;3D",     0,    0},
 	{ XK_Left,       ShiftMask|Mod1Mask,"\033[1;4D",     0,    0},
-	{ XK_Left,          ControlMask,    "\033[1;5D",     0,    0},
+	{ XK_Left,          ControlMask,    "\033Od",        0,    0},
 	{ XK_Left,    ShiftMask|ControlMask,"\033[1;6D",     0,    0},
 	{ XK_Left,     ControlMask|Mod1Mask,"\033[1;7D",     0,    0},
 	{ XK_Left,ShiftMask|ControlMask|Mod1Mask,"\033[1;8D",0,    0},
@@ -317,7 +319,7 @@ static Key key[] = {
 	{ XK_Right,         ShiftMask,      "\033[1;2C",     0,    0},
 	{ XK_Right,         Mod1Mask,       "\033[1;3C",     0,    0},
 	{ XK_Right,      ShiftMask|Mod1Mask,"\033[1;4C",     0,    0},
-	{ XK_Right,         ControlMask,    "\033[1;5C",     0,    0},
+	{ XK_Right,         ControlMask,    "\033Oc",        0,    0},
 	{ XK_Right,   ShiftMask|ControlMask,"\033[1;6C",     0,    0},
 	{ XK_Right,    ControlMask|Mod1Mask,"\033[1;7C",     0,    0},
 	{ XK_Right,ShiftMask|ControlMask|Mod1Mask,"\033[1;8C",0,   0},
@@ -336,7 +338,7 @@ static Key key[] = {
 	{ XK_Delete,        ControlMask,    "\033[3;5~",    +1,    0},
 	{ XK_Delete,        ShiftMask,      "\033[2K",      -1,    0},
 	{ XK_Delete,        ShiftMask,      "\033[3;2~",    +1,    0},
-	{ XK_Delete,        XK_ANY_MOD,     "\033[P",       -1,    0},
+	{ XK_Delete,        XK_ANY_MOD,     "\033[3~",      -1,    0},
 	{ XK_Delete,        XK_ANY_MOD,     "\033[3~",      +1,    0},
 	{ XK_BackSpace,     XK_NO_MOD,      "\177",          0,    0},
 	{ XK_BackSpace,     Mod1Mask,       "\033\177",      0,    0},
