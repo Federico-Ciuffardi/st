@@ -6,9 +6,9 @@
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
 //static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
-static char *font = "Source Code Pro:style=Medium:size=13:antialias=true";
+static char *font = "Source Code Pro:style=Medium:size=17:antialias=true";
 //static char *font = "mono:pixelsize=14:antialias=true:autohint=true";
-static char *font2[] = { "JoyPixels:size=13:antialias=true:autohint=true" };
+static char *font2[] = { "JoyPixels:size=17:antialias=true:autohint=true" };
 static int borderpx = 2;
 
 /*
@@ -117,7 +117,7 @@ static const char *colorname[] = {
 };
 
 /* bg opacity */
-float alpha = 0.94;
+float alpha = 0.87;
 
 /*
  * Default colors (colorname index)
