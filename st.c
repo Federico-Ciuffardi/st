@@ -1108,7 +1108,6 @@ kscrollup(const Arg* a)
 }
 
 void
-<<<<<<< HEAD
 newterm(const Arg* a)
 {
 	switch (fork()) {
@@ -1129,8 +1128,6 @@ static char *getcwd_by_pid(pid_t pid) {
 }
 
 void
-=======
->>>>>>> e195fb6... adds keyboard scrollback
 tscrolldown(int orig, int n, int copyhist)
 {
 	int i;
