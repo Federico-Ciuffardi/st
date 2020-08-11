@@ -1217,12 +1217,9 @@ xinit(int cols, int rows)
 	XGCValues gcvalues;
 	Window parent;
 	pid_t thispid = getpid();
-<<<<<<< HEAD
-=======
 	XColor xmousefg, xmousebg;
 	XWindowAttributes attr;
 	XVisualInfo vis;
->>>>>>> d4ba7ac... applies alpha
 
 	if (!(xw.dpy = XOpenDisplay(NULL)))
 		die("can't open display\n");
