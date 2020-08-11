@@ -91,40 +91,41 @@ char *termname = "st-256color";
  *
  *	stty tabs
  */
-unsigned int tabspaces = 8;
-
-/* bg opacity */
-float alpha = 0.8;
+unsigned int tabspaces = 2;
 
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	/* 8 normal colors */
-	"black",
-	"red3",
-	"green3",
-	"yellow3",
-	"blue2",
-	"magenta3",
-	"cyan3",
-	"gray90",
+	"#383c4a",//color0
+	"#9A4138",//color1
+	"#4BEC90",
+	"#D8D782",
+	"#5294e2",
+	"#CE50DD",
+	"#6BE5E7",
+	"#CCCCCC",
 
 	/* 8 bright colors */
-	"gray50",
-	"red",
-	"green",
-	"yellow",
-	"#5c5cff",
-	"magenta",
-	"cyan",
-	"white",
+	"#404552",
+	"#E7766B",
+	"#3CBF75",
+	"#CFCD63",
+	"#268bd2",
+	"#FE50DD",
+	"#90FDFF",
+	"#FFFFFF",
 
 	[255] = 0,
 
 	/* more colors can be added after 255 to use with DefaultXX */
-	"#cccccc",
-	"#555555",
-	"black",
+	"#FFFFFF", /* 256 -> cursor */
+	"#FFFFFF", /* 257 -> rev cursor*/
+	"#1E1E1E", /* 258 -> bg */
+	"#D2D2D2", /* 259 -> fg */
 };
+
+/* bg opacity */
+float alpha = 0.94;
 
 
 /*
@@ -231,9 +232,14 @@ static Shortcut shortcuts[] = {
 	{ TERMMOD,               XK_Y,           selpaste,       {.i =  0} },
 	{ ShiftMask,             XK_Insert,      selpaste,       {.i =  0} },
 	{ TERMMOD,               XK_Num_Lock,    numlock,        {.i =  0} },
+<<<<<<< HEAD
 	{ TERMMOD, XK_K,           kscrollup,      {.i = 1} },
 	{ TERMMOD, XK_J,           kscrolldown,    {.i = 1} },
 >>>>>>> d4ba7ac... applies alpha
+=======
+	{ TERMMOD,               XK_K,           kscrollup,      {.i = 1} },
+	{ TERMMOD,               XK_J,           kscrolldown,    {.i = 1} },
+>>>>>>> b2e3b6a... colors
 };
 
 /*
