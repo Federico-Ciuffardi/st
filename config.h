@@ -6,6 +6,7 @@
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
 static char *font = "Source Code Pro:style=Medium:size=13:antialias=true";
+static char *font2[] = { "JoyPixels:size=13:antialias=true:autohint=true" };
 static int borderpx = 1;
 
 /*
