@@ -1,5 +1,6 @@
 /* See LICENSE for license details. */
 #include <errno.h>
+#include <fcntl.h>
 #include <math.h>
 #include <limits.h>
 #include <locale.h>
@@ -1880,13 +1881,16 @@ xbell(void)
  * mouse_left_click = do_action), and we answer it by raising this
  * terminal's own window.
  *
+ * The notification id is also handed back to st through idfd, so st can
+ * close the notification itself once its window gains focus.
+ *
  * No shell is involved anywhere: argv arrays are used throughout, so titles
  * and bodies containing spaces or quotes cannot corrupt the command. No
  * setsid() either -- detaching from the session breaks the D-Bus connection
  * to the notification daemon and the call then fails silently.
  */
 static void
-xnotify_wait(Window win, char *title, char *body)
+xnotify_wait(Window win, char *title, char *body, int idfd)
 {
 	int pfd[2];
 	pid_t pid;
@@ -1945,10 +1949,20 @@ xnotify_wait(Window win, char *title, char *body)
 	close(pfd[1]);
 	out = fdopen(pfd[0], "r");
 	if (out) {
-		while (fgets(line, sizeof line, out))
+		while (fgets(line, sizeof line, out)) {
+			/* the first line is the id: pass it on to st */
+			if (idfd >= 0) {
+				if (write(idfd, line, strlen(line)) < 0)
+					; /* st then just cannot auto-close it */
+				close(idfd);
+				idfd = -1;
+			}
 			snprintf(last, sizeof last, "%s", line);
+		}
 		fclose(out);
 	}
+	if (idfd >= 0)
+		close(idfd);
 	close(pfd[0]);
 	while (waitpid(pid, NULL, 0) < 0 && errno == EINTR)
 		;
@@ -1968,6 +1982,57 @@ xnotify_wait(Window win, char *title, char *body)
 }
 
 /*
+ * read ends of the id pipes of notifications this window has raised and not
+ * yet closed. Each yields the notification id once dunst has assigned it.
+ */
+static int notifyfds[16];
+static int nnotifyfds;
+
+/*
+ * close every notification this window has raised: once the user is looking
+ * at the terminal, the notifications pointing at it are no longer needed.
+ */
+static void
+xnotify_dismiss(void)
+{
+	char id[32];
+	ssize_t n;
+	pid_t pid;
+	int i, j;
+
+	for (i = j = 0; i < nnotifyfds; i++) {
+		n = read(notifyfds[i], id, sizeof id - 1);
+		if (n < 0 && (errno == EAGAIN || errno == EINTR)) {
+			/* id not known yet, try again on the next focus */
+			notifyfds[j++] = notifyfds[i];
+			continue;
+		}
+		close(notifyfds[i]);
+		if (n <= 0)
+			continue;
+		id[n] = '\0';
+		id[strcspn(id, "\r\n")] = '\0';
+		if (!*id)
+			continue;
+
+		/* double fork, same reasons as in xnotify() */
+		pid = fork();
+		if (pid < 0)
+			continue;
+		if (pid > 0) {
+			while (waitpid(pid, NULL, 0) < 0 && errno == EINTR)
+				;
+			continue;
+		}
+		if (fork() > 0)
+			_exit(0);
+		execlp("dunstify", "dunstify", "-C", id, (char *)NULL);
+		_exit(1);
+	}
+	nnotifyfds = j;
+}
+
+/*
  * forward a desktop notification to the local notification daemon.
  * used for OSC 9 / OSC 777, which lets a program on a remote host notify
  * this machine: the sequence travels back over the ssh connection and is
@@ -1977,9 +2042,22 @@ void
 xnotify(char *title, char *body)
 {
 	pid_t pid;
+	int idfd[2] = { -1, -1 };
 
 	if (!body || !*body)
 		return;
+
+	/* the user is already looking at this terminal */
+	if (IS_SET(MODE_FOCUSED))
+		return;
+
+	/* without a free slot the notification still shows, it just is not
+	 * closed automatically on focus */
+	if (nnotifyfds < LEN(notifyfds) && pipe(idfd) == 0) {
+		fcntl(idfd[0], F_SETFL, O_NONBLOCK);
+		fcntl(idfd[0], F_SETFD, FD_CLOEXEC);
+		fcntl(idfd[1], F_SETFD, FD_CLOEXEC);
+	}
 
 	/*
 	 * double fork: the intermediate child exits at once so the waiting
@@ -1988,11 +2066,20 @@ xnotify(char *title, char *body)
 	 * SIGCHLD handling from here would be rude).
 	 */
 	pid = fork();
-	if (pid < 0)
+	if (pid < 0) {
+		if (idfd[0] >= 0) {
+			close(idfd[0]);
+			close(idfd[1]);
+		}
 		return;
+	}
 	if (pid > 0) {
 		while (waitpid(pid, NULL, 0) < 0 && errno == EINTR)
 			;
+		if (idfd[0] >= 0) {
+			close(idfd[1]);
+			notifyfds[nnotifyfds++] = idfd[0];
+		}
 		return;
 	}
 
@@ -2000,7 +2087,9 @@ xnotify(char *title, char *body)
 		_exit(0);
 
 	/* grandchild: orphaned, does the blocking wait */
-	xnotify_wait(xw.win, title, body);
+	if (idfd[0] >= 0)
+		close(idfd[0]);
+	xnotify_wait(xw.win, title, body, idfd[1]);
 	_exit(0); /* unreachable, xnotify_wait execs or exits */
 }
 
@@ -2017,6 +2106,7 @@ focus(XEvent *ev)
 			XSetICFocus(xw.ime.xic);
 		win.mode |= MODE_FOCUSED;
 		xseturgency(0);
+		xnotify_dismiss();
 		if (IS_SET(MODE_FOCUS))
 			ttywrite("\033[I", 3, 0);
 	} else {
