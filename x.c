@@ -469,11 +469,55 @@ mouseaction(XEvent *e, uint release)
 	return 0;
 }
 
+/* set while the button press that opened a link is still held */
+static int linkclick;
+
+/*
+ * open the hyperlink at cell (col, row) in the default handler.
+ * returns whether there was a link to open.
+ */
+static int
+xopenlink(int col, int row)
+{
+	char *url = tlinkurl(col, row);
+	char **s;
+	pid_t pid;
+
+	if (!url)
+		return 0;
+	for (s = linkschemes; *s; s++) {
+		if (!strncmp(url, *s, strlen(*s)))
+			break;
+	}
+	if (!*s)
+		return 0;
+
+	/* double fork, see xnotify() */
+	pid = fork();
+	if (pid < 0)
+		return 1;
+	if (pid > 0) {
+		while (waitpid(pid, NULL, 0) < 0 && errno == EINTR)
+			;
+		return 1;
+	}
+	if (fork() > 0)
+		_exit(0);
+	execlp("xdg-open", "xdg-open", url, (char *)NULL);
+	_exit(1);
+}
+
 void
 bpress(XEvent *e)
 {
 	struct timespec now;
 	int snap;
+
+	if (e->xbutton.button == Button1 && match(linkmod, e->xbutton.state) &&
+	    xopenlink(evcol(e), evrow(e))) {
+		linkclick = 1;
+		return;
+	}
 
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
@@ -697,6 +741,12 @@ xsetsel(char *str)
 void
 brelease(XEvent *e)
 {
+	/* the press opened a link: neither select nor report the release */
+	if (linkclick && e->xbutton.button == Button1) {
+		linkclick = 0;
+		return;
+	}
+
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
 		return;
@@ -711,6 +761,9 @@ brelease(XEvent *e)
 void
 bmotion(XEvent *e)
 {
+	if (linkclick)
+		return;
+
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
 		return;

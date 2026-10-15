@@ -66,6 +66,7 @@ typedef struct {
 	ushort mode;      /* attribute flags */
 	uint32_t fg;      /* foreground  */
 	uint32_t bg;      /* background  */
+	uint32_t link;    /* OSC 8 hyperlink id, 0 if none */
 } Glyph;
 
 typedef Glyph *Line;
@@ -105,6 +106,8 @@ void selstart(int, int, int);
 void selextend(int, int, int, int);
 int selected(int, int);
 char *getsel(void);
+
+char *tlinkurl(int, int);
 
 size_t utf8encode(Rune, char *);
 

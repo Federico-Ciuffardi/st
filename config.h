@@ -194,6 +194,15 @@ static unsigned int defaultattr = 11;
 static uint forcemousemod = ShiftMask;
 
 /*
+ * Clicking an OSC 8 hyperlink with this modifier held opens it with
+ * xdg-open, even while an application (e.g. tmux) has grabbed the mouse.
+ * Only URLs starting with one of linkschemes are opened: link targets come
+ * from whatever the terminal displays, possibly a remote host.
+ */
+static uint linkmod = 0; /* plain click */
+static char *linkschemes[] = { "http://", "https://", NULL };
+
+/*
  * Internal mouse shortcuts.
  * Beware that overloading Button1 will disable the selection.
  */

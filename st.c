@@ -164,6 +164,7 @@ static void csireset(void);
 static int eschandle(uchar);
 static void strdump(void);
 static void strhandle(void);
+static uint32_t linkadd(char *);
 static void strparse(void);
 static void strreset(void);
 
@@ -1222,6 +1223,9 @@ tsetchar(Rune u, Glyph *attr, int x, int y)
 
 	if (isboxdraw(u))
 		term.line[y][x].mode |= ATTR_BOXDRAW;
+	/* make hyperlinks recognisable as clickable */
+	if (attr->link)
+		term.line[y][x].mode |= ATTR_UNDERLINE;
 }
 
 void
@@ -1249,6 +1253,7 @@ tclearregion(int x1, int y1, int x2, int y2)
 			gp->fg = term.c.attr.fg;
 			gp->bg = term.c.attr.bg;
 			gp->mode = 0;
+			gp->link = 0;
 			gp->u = ' ';
 		}
 	}
@@ -1842,6 +1847,83 @@ csireset(void)
 	memset(&csiescseq, 0, sizeof(csiescseq));
 }
 
+/*
+ * OSC 8 hyperlink targets. A cell refers to its URL by id (index + 1), so
+ * the URL is stored once however many cells carry it, and redrawing the
+ * same link (tmux and TUIs do this constantly) reuses the same entry.
+ */
+static char *links[1024];
+
+/* drop the URLs no cell on either screen refers to any more */
+static void
+linkgc(void)
+{
+	static unsigned char used[LEN(links)];
+	Line *screens[2] = { term.line, term.alt };
+	uint32_t id;
+	int s, x, y;
+	size_t i;
+
+	memset(used, 0, sizeof used);
+	if (term.c.attr.link)
+		used[term.c.attr.link - 1] = 1;
+	for (s = 0; s < 2; s++) {
+		for (y = 0; y < term.row; y++) {
+			for (x = 0; x < term.col; x++) {
+				id = screens[s][y][x].link;
+				if (id)
+					used[id - 1] = 1;
+			}
+		}
+	}
+	for (i = 0; i < LEN(links); i++) {
+		if (links[i] && !used[i]) {
+			free(links[i]);
+			links[i] = NULL;
+		}
+	}
+}
+
+/* id for url, 0 when no slot can be found */
+static uint32_t
+linkadd(char *url)
+{
+	size_t i, slot;
+	int pass;
+
+	for (pass = 0; pass < 2; pass++) {
+		slot = LEN(links);
+		for (i = 0; i < LEN(links); i++) {
+			if (!links[i]) {
+				if (slot == LEN(links))
+					slot = i;
+			} else if (!strcmp(links[i], url)) {
+				return i + 1;
+			}
+		}
+		if (slot < LEN(links)) {
+			links[slot] = xstrdup(url);
+			return slot + 1;
+		}
+		linkgc();
+	}
+	return 0;
+}
+
+/* URL of the hyperlink at screen cell (x, y), or NULL */
+char *
+tlinkurl(int x, int y)
+{
+	uint32_t id;
+
+	if (!BETWEEN(x, 0, term.col-1) || !BETWEEN(y, 0, term.row-1))
+		return NULL;
+	id = term.line[y][x].link;
+	if (!id || id > LEN(links))
+		return NULL;
+	return links[id - 1];
+}
+
 void
 strhandle(void)
 {
@@ -1898,6 +1980,20 @@ strhandle(void)
 				 * are dirty
 				 */
 				redraw();
+			}
+			return;
+		case 8: /* hyperlink: OSC 8 ; params ; URI */
+			term.c.attr.link = 0;
+			if (narg > 2) {
+				/* the URI may itself contain ';', which
+				 * strparse() split on: join it back */
+				for (p = strescseq.args[2];
+				     p < strescseq.buf + strescseq.len; p++) {
+					if (*p == '\0')
+						*p = ';';
+				}
+				if (*strescseq.args[2])
+					term.c.attr.link = linkadd(strescseq.args[2]);
 			}
 			return;
 		case 777: /* rxvt-unicode / VS Code notification */
