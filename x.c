@@ -4,7 +4,10 @@
 #include <limits.h>
 #include <locale.h>
 #include <signal.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/select.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 #include <libgen.h>
@@ -1867,6 +1870,138 @@ xbell(void)
 		xseturgency(1);
 	if (bellvolume)
 		XkbBell(xw.dpy, xw.win, bellvolume, (Atom)NULL);
+}
+
+/*
+ * Blocking dunstify waiter, runs in the orphaned grandchild spawned by
+ * xnotify(). dunstify --printid blocks until the user clicks or dismisses,
+ * then prints the notification id followed by the chosen action. A click on
+ * the notification body invokes the "default" action (with dunst's
+ * mouse_left_click = do_action), and we answer it by raising this
+ * terminal's own window.
+ *
+ * No shell is involved anywhere: argv arrays are used throughout, so titles
+ * and bodies containing spaces or quotes cannot corrupt the command. No
+ * setsid() either -- detaching from the session breaks the D-Bus connection
+ * to the notification daemon and the call then fails silently.
+ */
+static void
+xnotify_wait(Window win, char *title, char *body)
+{
+	int pfd[2];
+	pid_t pid;
+	FILE *out;
+	char line[256], last[256];
+	char winid[32];
+	char *dargv[12];
+	int i = 0;
+
+	last[0] = '\0';
+
+	if (pipe(pfd) < 0)
+		_exit(1);
+
+	pid = fork();
+	if (pid < 0)
+		_exit(1);
+
+	if (pid == 0) {
+		/* dunstify child: stdout goes back through the pipe */
+		close(pfd[0]);
+		if (dup2(pfd[1], STDOUT_FILENO) < 0)
+			_exit(1);
+		close(pfd[1]);
+
+		dargv[i++] = "dunstify";
+		dargv[i++] = "-a";
+		dargv[i++] = "st";
+		dargv[i++] = "-u";
+		dargv[i++] = "normal";
+		dargv[i++] = "-t";
+		dargv[i++] = "120000";
+		dargv[i++] = "--printid";
+		dargv[i++] = "-A";
+		dargv[i++] = "default,Focus";
+		dargv[i++] = title ? title : "st";
+		dargv[i++] = body;
+		dargv[i] = NULL;
+
+		execvp("dunstify", dargv);
+
+		/* fall back to plain notify-send if dunstify is unavailable
+		 * (no click support there, just fire and exit) */
+		dargv[0] = (char *)"notify-send";
+		dargv[1] = (char *)"-u";
+		dargv[2] = (char *)"normal";
+		dargv[3] = title ? title : (char *)"st";
+		dargv[4] = body;
+		dargv[5] = NULL;
+
+		execvp("notify-send", dargv);
+		_exit(1);
+	}
+
+	/* waiter: read dunstify's answer (id, then the chosen action) */
+	close(pfd[1]);
+	out = fdopen(pfd[0], "r");
+	if (out) {
+		while (fgets(line, sizeof line, out))
+			snprintf(last, sizeof last, "%s", line);
+		fclose(out);
+	}
+	close(pfd[0]);
+	while (waitpid(pid, NULL, 0) < 0 && errno == EINTR)
+		;
+
+	/* trailing newline off, then check for the click */
+	i = strlen(last);
+	while (i > 0 && (last[i-1] == '\n' || last[i-1] == '\r'))
+		last[--i] = '\0';
+
+	if (strcmp(last, "default") != 0)
+		_exit(0);
+
+	/* clicked: raise this terminal's window */
+	snprintf(winid, sizeof winid, "%lu", (unsigned long)win);
+	execlp("xdotool", "xdotool", "windowactivate", winid, (char *)NULL);
+	_exit(1);
+}
+
+/*
+ * forward a desktop notification to the local notification daemon.
+ * used for OSC 9 / OSC 777, which lets a program on a remote host notify
+ * this machine: the sequence travels back over the ssh connection and is
+ * handled here, locally, rather than on the host that emitted it.
+ */
+void
+xnotify(char *title, char *body)
+{
+	pid_t pid;
+
+	if (!body || !*body)
+		return;
+
+	/*
+	 * double fork: the intermediate child exits at once so the waiting
+	 * grandchild is reparented to init, and st itself never has to reap
+	 * anything (st's X event loop must not block, and touching global
+	 * SIGCHLD handling from here would be rude).
+	 */
+	pid = fork();
+	if (pid < 0)
+		return;
+	if (pid > 0) {
+		while (waitpid(pid, NULL, 0) < 0 && errno == EINTR)
+			;
+		return;
+	}
+
+	if (fork() > 0)
+		_exit(0);
+
+	/* grandchild: orphaned, does the blocking wait */
+	xnotify_wait(xw.win, title, body);
+	_exit(0); /* unreachable, xnotify_wait execs or exits */
 }
 
 void

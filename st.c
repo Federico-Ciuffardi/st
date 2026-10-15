@@ -1900,6 +1900,15 @@ strhandle(void)
 				redraw();
 			}
 			return;
+		case 777: /* rxvt-unicode / VS Code notification */
+			if (notifications && narg > 3 &&
+			    !strcmp(strescseq.args[1], "notify"))
+				xnotify(strescseq.args[2], strescseq.args[3]);
+			return;
+		case 9: /* iTerm2 / Windows Terminal / WezTerm notification */
+			if (notifications && narg > 1)
+				xnotify(NULL, strescseq.args[1]);
+			return;
 		}
 		break;
 	case 'k': /* old title set compatibility */

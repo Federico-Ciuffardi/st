@@ -48,6 +48,13 @@ int allowaltscreen = 1;
    setting the clipboard text */
 int allowwindowops = 1;
 
+/* show OSC 9 and OSC 777 desktop notifications through the notification
+   daemon (dunstify, or notify-send without click support). since the escape
+   sequence travels with the program's output, notifications raised on a
+   remote host (over ssh) surface on this machine. clicking one focuses this
+   window (needs xdotool). set to 0 to ignore them. */
+int notifications = 1;
+
 /*
  * draw latency range in ms - from new content/keypress/etc until drawing.
  * within this range, st draws when content stops arriving (idle). mostly it's
