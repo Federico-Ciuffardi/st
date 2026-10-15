@@ -2139,7 +2139,13 @@ xnotify(char *title, char *body)
 	if (fork() > 0)
 		_exit(0);
 
-	/* grandchild: orphaned, does the blocking wait */
+	/*
+	 * grandchild: orphaned, does the blocking wait. st's SIGCHLD handler
+	 * is inherited and treats any child exit as the shell's, dying when
+	 * it cannot reap the shell, which would kill the waiter as soon as
+	 * dunstify exits.
+	 */
+	signal(SIGCHLD, SIG_DFL);
 	if (idfd[0] >= 0)
 		close(idfd[0]);
 	xnotify_wait(xw.win, title, body, idfd[1]);
